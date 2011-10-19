@@ -351,11 +351,10 @@ PROGRAM AIRWAYPOISEUILLEEXAMPLE
   CALL CMISSFieldCreateStart(IndependentFieldUserNumber,Region,IndependentField,Err)
   CALL CMISSFieldTypeSet(IndependentField,CMISSFieldIndependentType,Err)
   CALL CMISSFieldMeshDecompositionSet(IndependentField,Decomposition,Err) 
-  CALL CMISSFieldTypeSet(IndependentField,CMISSFieldIndependentType,Err) 
   CALL CMISSFieldVariableLabelSet(IndependentField,CMISSFieldUVariableType,"radius",Err)
   CALL CMISSFieldNumberOfVariablesSet(IndependentField,FieldIndependentNumberOfVariables,Err)
   CALL CMISSFieldNumberOfComponentsSet(IndependentField,CMISSFieldUVariableType,1,Err) 
-  CALL CMISSFieldComponentMeshComponentSet(IndependentField,CMISSFieldIndependentType,1,MeshComponentNumber,Err)
+!  CALL CMISSFieldComponentMeshComponentSet(IndependentField,CMISSFieldIndependentType,1,MeshComponentNumber,Err)
   CALL CMISSFieldComponentInterpolationSet(IndependentField,CMISSFieldUVariableType,1,&
 	& CMISSFieldElementBasedInterpolation,Err)
   ! CALL CMISSFieldScalingTypeSet(IndependentField,CMISSFieldUnitScaling,Err)
