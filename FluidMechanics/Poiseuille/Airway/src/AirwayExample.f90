@@ -65,13 +65,12 @@ PROGRAM AIRWAYPOISEUILLEEXAMPLE
   INTEGER(CMISSIntg), PARAMETER :: DecompositionUserNumber=6
   INTEGER(CMISSIntg), PARAMETER :: GeometricFieldUserNumber=7 !geometry
   INTEGER(CMISSIntg), PARAMETER :: DependentFieldUserNumber=8
-  INTEGER(CMISSIntg), PARAMETER :: MaterialsFieldUserNumber=9 !viscosity/density
+  INTEGER(CMISSIntg), PARAMETER :: MaterialsFieldViscosityUserNumber=9 !viscosity
   INTEGER(CMISSIntg), PARAMETER :: SourceFieldUserNumber=10
-  INTEGER(CMISSIntg), PARAMETER :: IndependentFieldUserNumber=11 !radius could carry gravity
+  INTEGER(CMISSIntg), PARAMETER :: RadiusFieldUserNumber=11 !radius could carry gravity
   INTEGER(CMISSIntg), PARAMETER :: EquationsSetUserNumber=12
   INTEGER(CMISSIntg), PARAMETER :: ProblemUserNumber=13
   INTEGER(CMISSIntg), PARAMETER :: EquationsSetFieldUserNumber=14
-  INTEGER(CMISSIntg), PARAMETER :: MaterialsFieldViscosityUserNumber=15
 
   !Program variables
   INTEGER(CMISSIntg) :: INTERPOLATION_TYPE
@@ -85,7 +84,7 @@ PROGRAM AIRWAYPOISEUILLEEXAMPLE
   INTEGER(CMISSIntg), PARAMETER :: FieldIndependentNumberOfVariables=1
   INTEGER(CMISSIntg), PARAMETER :: FieldIndependentNumberOfComponents=1
   INTEGER(CmissIntg), PARAMETER :: MeshComponentNumber=1
-
+  INTEGER(CmissIntg), PARAMETER :: RadiusFieldType=10
 
 
  ! LOGICAL :: EXPORT_FIELD
@@ -95,10 +94,10 @@ PROGRAM AIRWAYPOISEUILLEEXAMPLE
   TYPE(CMISSBasisType) :: Basis
   TYPE(CMISSBoundaryConditionsType) :: BoundaryConditions
   TYPE(CMISSCoordinateSystemType) :: CoordinateSystem,WorldCoordinateSystem
-  TYPE(CMISSDecompositionType) :: Decomposition
+  TYPE(CMISSDecompositionType) :: Decomposition,Decomposition2
   TYPE(CMISSEquationsType) :: Equations
   TYPE(CMISSEquationsSetType) :: EquationsSet
-  TYPE(CMISSFieldType) :: GeometricField,DependentField,IndependentField
+  TYPE(CMISSFieldType) :: GeometricField,DependentField,RadiusField
   TYPE(CMISSFieldType) :: MaterialsField, MaterialsFieldViscosity
   TYPE(CMISSFieldsType) :: Fields
 !  TYPE(CMISSGeneratedMeshType) :: GeneratedMesh
@@ -110,13 +109,11 @@ PROGRAM AIRWAYPOISEUILLEEXAMPLE
   TYPE(CMISSSolverType) :: Solver
   TYPE(CMISSSolverEquationsType) :: SolverEquations
   TYPE(CMISSFieldType) :: EquationsSetField
-
   !Generic CMISS variables
 
   INTEGER(CMISSIntg) :: EquationsSetIndex
   INTEGER(CMISSIntg) :: Err
   INTEGER(CMISSIntg) :: NumberOfComputationalNodes,ComputationalNodeNumber
-
 !  !Equations sets
 !  TYPE(CMISSEquationsSetType) :: EquationsSetPoiseuille
 !  !Equations
@@ -204,7 +201,7 @@ PROGRAM AIRWAYPOISEUILLEEXAMPLE
   !create a 1D airway airway mesh
   CALL CMISSMeshCreateStart(MeshUserNumber,Region,1,Mesh,Err)
   CALL CMISSMeshNumberOfElementsSet(Mesh,11,Err)
-  CALL CMISSMeshNumberOfComponentsSet(Mesh,2,Err)!add a second mesh component
+  CALL CMISSMeshNumberOfComponentsSet(Mesh,1,Err)!add a second mesh component
   CALL CMISSMeshElementsTypeInitialise(MeshElements,Err)
   !for the node based fields
   CALL CMISSMeshElementsCreateStart(Mesh,1,Basis,MeshElements,Err)
@@ -221,22 +218,6 @@ PROGRAM AIRWAYPOISEUILLEEXAMPLE
   CALL CMISSMeshElementsNodesSet(MeshElements,11,[10,12],Err)
   CALL CMISSMeshElementsBasisSet(MeshElements,11,Basis,Err)
   CALL CMISSMeshElementsCreateFinish(MeshElements,Err)
-  !for the element based fields
-  CALL CMISSMeshElementsTypeInitialise(MeshElements2,Err)
-  CALL CMISSMeshElementsCreateStart(Mesh,2,Basis,MeshElements2,Err)
-  CALL CMISSMeshElementsNodesSet(MeshElements2,1,[1,2],Err)
-  CALL CMISSMeshElementsNodesSet(MeshElements2,2,[2,3],Err)
-  CALL CMISSMeshElementsNodesSet(MeshElements2,3,[2,4],Err)
-  CALL CMISSMeshElementsNodesSet(MeshElements2,4,[3,5],Err)
-  CALL CMISSMeshElementsNodesSet(MeshElements2,5,[3,6],Err)
-  CALL CMISSMeshElementsNodesSet(MeshElements2,6,[4,7],Err)
-  CALL CMISSMeshElementsNodesSet(MeshElements2,7,[4,8],Err)
-  CALL CMISSMeshElementsNodesSet(MeshElements2,8,[8,9],Err)
-  CALL CMISSMeshElementsNodesSet(MeshElements2,9,[8,10],Err)
-  CALL CMISSMeshElementsNodesSet(MeshElements2,10,[10,11],Err)
-  CALL CMISSMeshElementsNodesSet(MeshElements2,11,[10,12],Err)
-  CALL CMISSMeshElementsBasisSet(MeshElements2,11,Basis,Err)
-  CALL CMISSMeshElementsCreateFinish(MeshElements2,Err)
   CALL CMISSMeshCreateFinish(Mesh,Err)
 !stop-good till here
 
@@ -347,57 +328,61 @@ PROGRAM AIRWAYPOISEUILLEEXAMPLE
 
 
   !Create an independent field with constant interpolation to hold the radius values 
-  CALL CMISSFieldTypeInitialise(IndependentField,Err)
-  CALL CMISSFieldCreateStart(IndependentFieldUserNumber,Region,IndependentField,Err)
-  CALL CMISSFieldTypeSet(IndependentField,CMISSFieldIndependentType,Err)
-  CALL CMISSFieldMeshDecompositionSet(IndependentField,Decomposition,Err) 
-  CALL CMISSFieldVariableLabelSet(IndependentField,CMISSFieldUVariableType,"radius",Err)
-  CALL CMISSFieldNumberOfVariablesSet(IndependentField,FieldIndependentNumberOfVariables,Err)
-  CALL CMISSFieldNumberOfComponentsSet(IndependentField,CMISSFieldUVariableType,1,Err) 
-!  CALL CMISSFieldComponentMeshComponentSet(IndependentField,CMISSFieldIndependentType,1,MeshComponentNumber,Err)
-  CALL CMISSFieldComponentInterpolationSet(IndependentField,CMISSFieldUVariableType,1,&
+  CALL CMISSFieldTypeInitialise(RadiusField,Err)
+  CALL CMISSFieldCreateStart(RadiusFieldUserNumber,Region,RadiusField,Err)
+  CALL CMISSFieldGeometricFieldSet(RadiusField,GeometricField,Err)
+  CALL CMISSFieldTypeSet(RadiusField,CMISSFieldGeneralType,Err)
+  CALL CMISSFieldDependentTypeSet(RadiusField,CMISSFieldIndependentType,Err)
+  CALL CMISSFieldMeshDecompositionSet(RadiusField,Decomposition,Err)
+  CALL CMISSFieldNumberOfVariablesSet(RadiusField,1,Err)
+  CALL CMISSFieldVariableTypesSet(RadiusField,[RadiusFieldType],err)
+  CALL CMISSFieldVariableLabelSet(RadiusField,RadiusFieldType,"radius",Err)
+  CALL CMISSFieldNumberOfComponentsSet(RadiusField,RadiusFieldType,1,Err)
+ ! CALL CMISSFieldComponentMeshComponentSet(RadiusField,RadiusFieldType,1,2,Err)
+  CALL CMISSFieldComponentInterpolationSet(RadiusField,RadiusFieldType,1,&
 	& CMISSFieldElementBasedInterpolation,Err)
-  ! CALL CMISSFieldScalingTypeSet(IndependentField,CMISSFieldUnitScaling,Err)
-  CALL CMISSFieldCreateFinish(IndependentField,Err)
-  !set the radius values
+  !CALL CMISSFieldScalingTypeSet(RadiusField,CMISSFieldUnitScaling,Err)
+  CALL CMISSFieldCreateFinish(RadiusField,Err)
+stop !fails here unable to finish
+
   !element 1
-  CALL CMISSFieldParameterSetUpdateElement(IndependentField,CMISSFieldIndependentType,&
+  CALL CMISSFieldParameterSetUpdateElement(RadiusField,RadiusFieldType,&
 	& CMISSFieldValuesSetType,1,1,6.0_CMISSDP,Err) 
   !element 2
-  CALL CMISSFieldParameterSetUpdateElement(IndependentField,CMISSFieldIndependentType,&
+  CALL CMISSFieldParameterSetUpdateElement(RadiusField,RadiusFieldType,&
 	& CMISSFieldValuesSetType,2,1,4.0_CMISSDP,Err)
   !element 3
-  CALL CMISSFieldParameterSetUpdateElement(IndependentField,CMISSFieldIndependentType,&
+  CALL CMISSFieldParameterSetUpdateElement(RadiusField,RadiusFieldType,&
 	& CMISSFieldValuesSetType,3,1,5.0_CMISSDP,Err)
   !element 4
-  CALL CMISSFieldParameterSetUpdateElement(IndependentField,CMISSFieldIndependentType,&
+  CALL CMISSFieldParameterSetUpdateElement(RadiusField,RadiusFieldType,&
 	& CMISSFieldValuesSetType,4,1,2.0_CMISSDP,Err)
   !element 5
-  CALL CMISSFieldParameterSetUpdateElement(IndependentField,CMISSFieldIndependentType,&
+  CALL CMISSFieldParameterSetUpdateElement(RadiusField,RadiusFieldType,&
 	& CMISSFieldValuesSetType,5,1,1.5_CMISSDP,Err)
   !element 6
-  CALL CMISSFieldParameterSetUpdateElement(IndependentField,CMISSFieldIndependentType,&
+  CALL CMISSFieldParameterSetUpdateElement(RadiusField,RadiusFieldType,&
 	& CMISSFieldValuesSetType,6,1,2.0_CMISSDP,Err)
   !element 7
-  CALL CMISSFieldParameterSetUpdateElement(IndependentField,CMISSFieldIndependentType,&
+  CALL CMISSFieldParameterSetUpdateElement(RadiusField,RadiusFieldType,&
 	& CMISSFieldValuesSetType,7,1,3.0_CMISSDP,Err)
   !element 8
-  CALL CMISSFieldParameterSetUpdateElement(IndependentField,CMISSFieldIndependentType,&
+  CALL CMISSFieldParameterSetUpdateElement(RadiusField,RadiusFieldType,&
 	& CMISSFieldValuesSetType,8,1,1.5_CMISSDP,Err)
   !element 9
-  CALL CMISSFieldParameterSetUpdateElement(IndependentField,CMISSFieldIndependentType,&
+  CALL CMISSFieldParameterSetUpdateElement(RadiusField,RadiusFieldType,&
 	& CMISSFieldValuesSetType,9,1,2.0_CMISSDP,Err)
   !element 10
-  CALL CMISSFieldParameterSetUpdateElement(IndependentField,CMISSFieldIndependentType,&
+  CALL CMISSFieldParameterSetUpdateElement(RadiusField,RadiusFieldType,&
 	& CMISSFieldValuesSetType,10,1,1.5_CMISSDP,Err)
   !element 11
-  CALL CMISSFieldParameterSetUpdateElement(IndependentField,CMISSFieldIndependentType,&
+  CALL CMISSFieldParameterSetUpdateElement(RadiusField,RadiusFieldType,&
 	& CMISSFieldValuesSetType,11,1,1.0_CMISSDP,Err)
 
   
 !Radius -cant finish ?
-  CALL CMISSFieldParameterSetUpdateStart(IndependentField,CMISSFieldUVariableType,CMISSFieldValuesSetType,Err)
-  CALL CMISSFieldParameterSetUpdateFinish(IndependentField,CMISSFieldUVariableType,CMISSFieldValuesSetType,Err)
+ CALL CMISSFieldParameterSetUpdateStart(RadiusField,CMISSFieldIndependentType,CMISSFieldValuesSetType,Err)
+  CALL CMISSFieldParameterSetUpdateFinish(RadiusField,CMISSFieldIndependentType,CMISSFieldValuesSetType,Err)
 
 stop
 
@@ -405,7 +390,7 @@ stop
   CALL CMISSFieldsTypeCreate(Region,Fields,Err)
   CALL CMISSFieldIONodesExport(Fields,"Test_Airway","FORTRAN",Err)
   CALL CMISSFieldIOElementsExport(Fields,"Test_Airway","FORTRAN",Err)
-!  CALL CMISSFieldIOElementsExport(IndependentField,"Radius","FORTRAN",Err)
+!  CALL CMISSFieldIOElementsExport(RadiusField,"Radius","FORTRAN",Err)
   CALL CMISSFieldsTypeFinalise(Fields,Err)
 !#################################################################################################################################################################
 !notes not sure why I cant "finish" the element based field -it prints out ok to cmgui, should this have been an equations set ?
@@ -420,15 +405,28 @@ stop
     & CMISSEquationsSetPoiseuilleEquationType,CMISSEquationsSetStaticPoiseuilleSubtype,EquationsSetFieldUserNumber, &
     & EquationsSetField,EquationsSet,Err)
   CALL CMISSEquationsSetCreateFinish(EquationsSet,Err)
-
-  !Create the equations set independent field variables, in this case radius
-  CALL CMISSEquationsSetIndependentCreateStart(EquationsSet,IndependentFieldUserNumber,IndependentField,Err)
-  CALL CMISSEquationsSetIndependentCreateFinish(EquationsSet,Err)
+  !good to here
 
   !Create the equations set dependent field variables pressure, flow
   CALL CMISSFieldTypeInitialise(DependentField,Err)
   CALL CMISSEquationsSetDependentCreateStart(EquationsSet,DependentFieldUserNumber,DependentField,Err)
   CALL CMISSEquationsSetDependentCreateFinish(EquationsSet,Err)
+
+  !Create the equations set material field variables viscosity
+  CALL CMISSFieldTypeInitialise(MaterialsFieldViscosity,Err)
+  CALL CMISSEquationsSetMaterialsCreateStart(EquationsSet,MaterialsFieldViscosityUserNumber,MaterialsFieldViscosity,Err)
+  CALL CMISSEquationsSetMaterialsCreateFinish(EquationsSet,Err)
+  VISCOSITY=1.86E-5_CMISSDP !viscosity of air
+  CALL CMISSFieldComponentValuesInitialise(MaterialsFieldViscosity,CMISSFieldUVariableType,CMISSFieldValuesSetType,1,Viscosity,Err)
+
+
+
+  !Create the equations set independent field variables, in this case radius
+  CALL CMISSEquationsSetGeneralCreateStart(EquationsSet,RadiusFieldUserNumber,RadiusField,Err)
+  CALL CMISSEquationsSetGeneralCreateFinish(EquationsSet,Err)
+
+
+stop
 
   !Create the equations set material field variables (length...need to set up differently)
 !  CALL CMISSFieldTypeInitialise(MaterialsField,Err)
@@ -437,12 +435,7 @@ stop
 !  PIPE_LENGTH=SQRT(DOT_PRODUCT(POSITION,POSITION))
 !  CALL CMISSFieldComponentValuesInitialise(MaterialsField,CMISSFieldUVariableType,CMISSFieldValuesSetType,3,PIPE_LENGTH,Err)
 
-  !Create the equations set material field variables viscosity
-  CALL CMISSFieldTypeInitialise(MaterialsFieldViscosity,Err)
-  CALL CMISSEquationsSetMaterialsCreateStart(EquationsSet,MaterialsFieldViscosityUserNumber,MaterialsFieldViscosity,Err)
-  CALL CMISSEquationsSetMaterialsCreateFinish(EquationsSet,Err)
-  VISCOSITY=1.86E-5_CMISSDP !viscosity of air
-  CALL CMISSFieldComponentValuesInitialise(MaterialsFieldViscosity,CMISSFieldUVariableType,CMISSFieldValuesSetType,1,Viscosity,Err)
+
 
 
 stop
