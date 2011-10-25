@@ -76,7 +76,7 @@ PROGRAM AIRWAYPOISEUILLEEXAMPLE
   INTEGER(CMISSIntg) :: INTERPOLATION_TYPE
   INTEGER(CMISSIntg) :: NUMBER_GLOBAL_X_ELEMENTS
   INTEGER(CMISSIntg) :: NUMBER_OF_ARGUMENTS,ARGUMENT_LENGTH,STATUS
-  REAL(CMISSDP) :: POSITION(3),PIPE_LENGTH,VISCOSITY
+  REAL(CMISSDP) :: POSITION(3),PIPE_LENGTH,VISCOSITY,DENSITY
   CHARACTER(LEN=255) :: COMMAND_ARGUMENT
 
   INTEGER(CMISSIntg) :: FirstNodeNumber,LastNodeNumber,FirstNodeDomain,LastNodeDomain
@@ -394,7 +394,7 @@ PROGRAM AIRWAYPOISEUILLEEXAMPLE
 !##############################################################################################################################################
 !SET UP EQUATIONS
 
-  !Create the equations_set,length is derived from geometry
+  !Create the equations_set is derived from geometry
   CALL CMISSEquationsSetTypeInitialise(EquationsSet,Err)
   CALL CMISSFieldTypeInitialise(EquationsSetField,Err)
   CALL CMISSEquationsSetCreateStart(EquationsSetUserNumber,Region,GeometricField,CMISSEquationsSetFluidmechanicsClass, &
@@ -403,18 +403,21 @@ PROGRAM AIRWAYPOISEUILLEEXAMPLE
   CALL CMISSEquationsSetCreateFinish(EquationsSet,Err)
 
 
-  !Create the equations set dependent field variables pressure, flow  
+  !Create the equations set dependent field variables
+  !Note that this field is set up in Poiseulle Equation Routines to have two variables and two components which are node (pressure) and element based (flow).
   CALL CMISSFieldTypeInitialise(DependentField,Err) 
   CALL CMISSEquationsSetDependentCreateStart(EquationsSet,DependentFieldUserNumber,DependentField,Err)
   CALL CMISSEquationsSetDependentCreateFinish(EquationsSet,Err)
 
-  !Create the equations set material field variables viscosity, density (not done yet in source code)
+  !Create the equations set material field variables viscosity, density
   CALL CMISSFieldTypeInitialise(MaterialsFieldViscosity,Err)
   CALL CMISSEquationsSetMaterialsCreateStart(EquationsSet,MaterialsFieldViscosityUserNumber,MaterialsFieldViscosity,Err)
   CALL CMISSEquationsSetMaterialsCreateFinish(EquationsSet,Err)
   VISCOSITY=1.86E-5_CMISSDP !viscosity of air
-  CALL CMISSFieldComponentValuesInitialise(MaterialsFieldViscosity,CMISSFieldUVariableType,CMISSFieldValuesSetType,1,Viscosity,Err)
-
+  !CALL CMISSFieldComponentValuesInitialise(MaterialsFieldViscosity,CMISSFieldUVariableType,CMISSFieldValuesSetType,1,Viscosity,Err)
+ ! DENSITY=1.27E-6_CMISSDP !density of air
+  !CALL CMISSFieldComponentValuesInitialise(MaterialsFieldViscosity,CMISSFieldUVariableType,CMISSFieldValuesSetType,2,Viscosity,Err)
+  
   !Create the equations set independent field variables, in this case radius
   CALL CMISSEquationsSetIndependentCreateStart(EquationsSet,RadiusFieldUserNumber,RadiusField,Err)
   CALL CMISSEquationsSetIndependentCreateFinish(EquationsSet,Err)
