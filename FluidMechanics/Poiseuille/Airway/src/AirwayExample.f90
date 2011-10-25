@@ -84,7 +84,8 @@ PROGRAM AIRWAYPOISEUILLEEXAMPLE
   INTEGER(CMISSIntg), PARAMETER :: FieldIndependentNumberOfVariables=1
   INTEGER(CMISSIntg), PARAMETER :: FieldIndependentNumberOfComponents=1
   INTEGER(CmissIntg), PARAMETER :: MeshComponentNumber=1
-  INTEGER(CmissIntg), PARAMETER :: RadiusFieldType=10
+  INTEGER(CmissIntg), PARAMETER :: RadiusFieldType=10 
+  INTEGER(CmissIntg), PARAMETER :: DependentFieldType=11 
 
 
  ! LOGICAL :: EXPORT_FIELD
@@ -330,7 +331,6 @@ PROGRAM AIRWAYPOISEUILLEEXAMPLE
   !Create an independent field with constant interpolation to hold the radius values 
   CALL CMISSFieldTypeInitialise(RadiusField,Err)
   CALL CMISSFieldCreateStart(RadiusFieldUserNumber,Region,RadiusField,Err)
-  CALL CMISSFieldGeometricFieldSet(RadiusField,GeometricField,Err)
   CALL CMISSFieldTypeSet(RadiusField,CMISSFieldGeneralType,Err)
   CALL CMISSFieldDependentTypeSet(RadiusField,CMISSFieldIndependentType,Err)
   CALL CMISSFieldMeshDecompositionSet(RadiusField,Decomposition,Err)
@@ -338,13 +338,14 @@ PROGRAM AIRWAYPOISEUILLEEXAMPLE
   CALL CMISSFieldVariableTypesSet(RadiusField,[RadiusFieldType],err)
   CALL CMISSFieldVariableLabelSet(RadiusField,RadiusFieldType,"radius",Err)
   CALL CMISSFieldNumberOfComponentsSet(RadiusField,RadiusFieldType,1,Err)
- ! CALL CMISSFieldComponentMeshComponentSet(RadiusField,RadiusFieldType,1,2,Err)
+  CALL CMISSFieldComponentMeshComponentSet(RadiusField,RadiusFieldType,1,1,Err)
   CALL CMISSFieldComponentInterpolationSet(RadiusField,RadiusFieldType,1,&
 	& CMISSFieldElementBasedInterpolation,Err)
-  !CALL CMISSFieldScalingTypeSet(RadiusField,CMISSFieldUnitScaling,Err)
+  CALL CMISSFieldScalingTypeSet(RadiusField,CMISSFieldUnitScaling,Err)
+  CALL CMISSFieldGeometricFieldSet(RadiusField,GeometricField,Err)
   CALL CMISSFieldCreateFinish(RadiusField,Err)
-stop !fails here unable to finish
 
+  !set the radius values
   !element 1
   CALL CMISSFieldParameterSetUpdateElement(RadiusField,RadiusFieldType,&
 	& CMISSFieldValuesSetType,1,1,6.0_CMISSDP,Err) 
@@ -379,73 +380,57 @@ stop !fails here unable to finish
   CALL CMISSFieldParameterSetUpdateElement(RadiusField,RadiusFieldType,&
 	& CMISSFieldValuesSetType,11,1,1.0_CMISSDP,Err)
 
-  
-!Radius -cant finish ?
- CALL CMISSFieldParameterSetUpdateStart(RadiusField,CMISSFieldIndependentType,CMISSFieldValuesSetType,Err)
-  CALL CMISSFieldParameterSetUpdateFinish(RadiusField,CMISSFieldIndependentType,CMISSFieldValuesSetType,Err)
+  CALL CMISSFieldParameterSetUpdateStart(RadiusField,RadiusFieldType,CMISSFieldValuesSetType,Err)
+  CALL CMISSFieldParameterSetUpdateFinish(RadiusField,RadiusFieldType,CMISSFieldValuesSetType,Err)
 
-stop
 
+  !Export the  fields for checking
   CALL CMISSFieldsTypeInitialise(Fields,Err)
   CALL CMISSFieldsTypeCreate(Region,Fields,Err)
   CALL CMISSFieldIONodesExport(Fields,"Test_Airway","FORTRAN",Err)
   CALL CMISSFieldIOElementsExport(Fields,"Test_Airway","FORTRAN",Err)
-!  CALL CMISSFieldIOElementsExport(RadiusField,"Radius","FORTRAN",Err)
   CALL CMISSFieldsTypeFinalise(Fields,Err)
-!#################################################################################################################################################################
-!notes not sure why I cant "finish" the element based field -it prints out ok to cmgui, should this have been an equations set ?
 
+!##############################################################################################################################################
+!SET UP EQUATIONS
 
-!##################################################################################################################################################################
-
-  !Create the equations_set
+  !Create the equations_set,length is derived from geometry
   CALL CMISSEquationsSetTypeInitialise(EquationsSet,Err)
   CALL CMISSFieldTypeInitialise(EquationsSetField,Err)
   CALL CMISSEquationsSetCreateStart(EquationsSetUserNumber,Region,GeometricField,CMISSEquationsSetFluidmechanicsClass, &
     & CMISSEquationsSetPoiseuilleEquationType,CMISSEquationsSetStaticPoiseuilleSubtype,EquationsSetFieldUserNumber, &
     & EquationsSetField,EquationsSet,Err)
   CALL CMISSEquationsSetCreateFinish(EquationsSet,Err)
-  !good to here
 
-  !Create the equations set dependent field variables pressure, flow
-  CALL CMISSFieldTypeInitialise(DependentField,Err)
+
+  !Create the equations set dependent field variables pressure, flow  
+  CALL CMISSFieldTypeInitialise(DependentField,Err) 
   CALL CMISSEquationsSetDependentCreateStart(EquationsSet,DependentFieldUserNumber,DependentField,Err)
   CALL CMISSEquationsSetDependentCreateFinish(EquationsSet,Err)
 
-  !Create the equations set material field variables viscosity
+  !Create the equations set material field variables viscosity, density (not done yet in source code)
   CALL CMISSFieldTypeInitialise(MaterialsFieldViscosity,Err)
   CALL CMISSEquationsSetMaterialsCreateStart(EquationsSet,MaterialsFieldViscosityUserNumber,MaterialsFieldViscosity,Err)
   CALL CMISSEquationsSetMaterialsCreateFinish(EquationsSet,Err)
   VISCOSITY=1.86E-5_CMISSDP !viscosity of air
   CALL CMISSFieldComponentValuesInitialise(MaterialsFieldViscosity,CMISSFieldUVariableType,CMISSFieldValuesSetType,1,Viscosity,Err)
 
-
-
   !Create the equations set independent field variables, in this case radius
-  CALL CMISSEquationsSetGeneralCreateStart(EquationsSet,RadiusFieldUserNumber,RadiusField,Err)
-  CALL CMISSEquationsSetGeneralCreateFinish(EquationsSet,Err)
+  CALL CMISSEquationsSetIndependentCreateStart(EquationsSet,RadiusFieldUserNumber,RadiusField,Err)
+  CALL CMISSEquationsSetIndependentCreateFinish(EquationsSet,Err)
 
-
-stop
-
-  !Create the equations set material field variables (length...need to set up differently)
-!  CALL CMISSFieldTypeInitialise(MaterialsField,Err)
-!  CALL CMISSEquationsSetMaterialsCreateStart(EquationsSet,MaterialsFieldUserNumber,MaterialsField,Err)
-!  CALL CMISSEquationsSetMaterialsCreateFinish(EquationsSet,Err)
-!  PIPE_LENGTH=SQRT(DOT_PRODUCT(POSITION,POSITION))
-!  CALL CMISSFieldComponentValuesInitialise(MaterialsField,CMISSFieldUVariableType,CMISSFieldValuesSetType,3,PIPE_LENGTH,Err)
-
-
-
-
-stop
 
   !Create the equations set equations
   CALL CMISSEquationsTypeInitialise(Equations,Err)
   CALL CMISSEquationsSetEquationsCreateStart(EquationsSet,Equations,Err)
   CALL CMISSEquationsSparsityTypeSet(Equations,CMISSEquationsSparseMatrices,Err)
   CALL CMISSEquationsOutputTypeSet(Equations,CMISSEquationsNoOutput,Err)
+  !fails to finalise
   CALL CMISSEquationsSetEquationsCreateFinish(EquationsSet,Err)
+
+stop
+
+
 
   !Start the creation of a problem.
   CALL CMISSProblemTypeInitialise(Problem,Err)
