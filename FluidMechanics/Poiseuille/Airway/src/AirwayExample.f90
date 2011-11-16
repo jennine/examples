@@ -41,7 +41,10 @@
 !>
 
 !> \example FluidMechanics/Poiseuille/Static/src/StaticExample.f90
-!! Example program to solve a static Poiseuille equation using openCMISS calls.
+!> Example program to solve a static Poiseuille equation using openCMISS calls.
+!> Two equation sets are implemented:
+!> Equation Set 1 is the Poiseulle Flow Equations
+!> Equation Set 2 is the Continuity Equations for Flow.
 !<
 
 !> Main program
@@ -68,15 +71,18 @@ PROGRAM AIRWAYPOISEUILLEEXAMPLE
   INTEGER(CMISSIntg), PARAMETER :: MaterialsFieldViscosityUserNumber=9 !viscosity
   INTEGER(CMISSIntg), PARAMETER :: SourceFieldUserNumber=10
   INTEGER(CMISSIntg), PARAMETER :: RadiusFieldUserNumber=11 !radius could carry gravity
-  INTEGER(CMISSIntg), PARAMETER :: EquationsSetUserNumber=12
+  INTEGER(CMISSIntg), PARAMETER :: EquationsSet1UserNumber=12
   INTEGER(CMISSIntg), PARAMETER :: ProblemUserNumber=13
-  INTEGER(CMISSIntg), PARAMETER :: EquationsSetFieldUserNumber=14
+  INTEGER(CMISSIntg), PARAMETER :: EquationsSet1FieldUserNumber=14
+  INTEGER(CMISSIntg), PARAMETER :: EquationsSet2UserNumber=15
+  INTEGER(CMISSIntg), PARAMETER :: EquationsSet2FieldUserNumber=16  
+
 
   !Program variables
   INTEGER(CMISSIntg) :: INTERPOLATION_TYPE
   INTEGER(CMISSIntg) :: NUMBER_GLOBAL_X_ELEMENTS
   INTEGER(CMISSIntg) :: NUMBER_OF_ARGUMENTS,ARGUMENT_LENGTH,STATUS
-  REAL(CMISSDP) :: POSITION(3),PIPE_LENGTH,VISCOSITY,DENSITY
+  REAL(CMISSDP)      :: VISCOSITY,DENSITY
   CHARACTER(LEN=255) :: COMMAND_ARGUMENT
 
   INTEGER(CMISSIntg) :: FirstNodeNumber,LastNodeNumber,FirstNodeDomain,LastNodeDomain
@@ -96,8 +102,8 @@ PROGRAM AIRWAYPOISEUILLEEXAMPLE
   TYPE(CMISSBoundaryConditionsType) :: BoundaryConditions
   TYPE(CMISSCoordinateSystemType) :: CoordinateSystem,WorldCoordinateSystem
   TYPE(CMISSDecompositionType) :: Decomposition,Decomposition2
-  TYPE(CMISSEquationsType) :: Equations
-  TYPE(CMISSEquationsSetType) :: EquationsSet
+  TYPE(CMISSEquationsType) :: Equations1,Equations2
+  TYPE(CMISSEquationsSetType) :: EquationsSet1,EquationsSet2
   TYPE(CMISSFieldType) :: GeometricField,DependentField,RadiusField
   TYPE(CMISSFieldType) :: MaterialsField, MaterialsFieldViscosity
   TYPE(CMISSFieldsType) :: Fields
@@ -109,12 +115,13 @@ PROGRAM AIRWAYPOISEUILLEEXAMPLE
   TYPE(CMISSRegionType) :: Region,WorldRegion
   TYPE(CMISSSolverType) :: Solver
   TYPE(CMISSSolverEquationsType) :: SolverEquations
-  TYPE(CMISSFieldType) :: EquationsSetField
+  TYPE(CMISSFieldType) :: EquationsSet1Field,EquationsSet2Field
   !Generic CMISS variables
 
   INTEGER(CMISSIntg) :: EquationsSetIndex
   INTEGER(CMISSIntg) :: Err
   INTEGER(CMISSIntg) :: NumberOfComputationalNodes,ComputationalNodeNumber
+  INTEGER(CmissIntg) :: MeshComponent_no
 !  !Equations sets
 !  TYPE(CMISSEquationsSetType) :: EquationsSetPoiseuille
 !  !Equations
@@ -160,6 +167,8 @@ PROGRAM AIRWAYPOISEUILLEEXAMPLE
   !Trap all errors
   CALL CMISSErrorHandlingModeSet(CMISSTrapError,Err)
 
+
+  CALL CMISSDiagnosticsSetOn(CMISSInDiagType,[1,2,3,4,5],"Diagnostics",["EQUATIONS_MATRIX_STRUCTURE_CALCULATE"],Err)
   !Output to a file
   CALL CMISSOutputSetOn("Poiseuille_Airway",Err)
 
@@ -202,7 +211,7 @@ PROGRAM AIRWAYPOISEUILLEEXAMPLE
   !create a 1D airway airway mesh
   CALL CMISSMeshCreateStart(MeshUserNumber,Region,1,Mesh,Err)
   CALL CMISSMeshNumberOfElementsSet(Mesh,11,Err)
-  CALL CMISSMeshNumberOfComponentsSet(Mesh,1,Err)!add a second mesh component
+  CALL CMISSMeshNumberOfComponentsSet(Mesh,1,Err)
   CALL CMISSMeshElementsTypeInitialise(MeshElements,Err)
   !for the node based fields
   CALL CMISSMeshElementsCreateStart(Mesh,1,Basis,MeshElements,Err)
@@ -342,7 +351,7 @@ PROGRAM AIRWAYPOISEUILLEEXAMPLE
   CALL CMISSFieldComponentInterpolationSet(RadiusField,RadiusFieldType,1,&
 	& CMISSFieldElementBasedInterpolation,Err)
   CALL CMISSFieldScalingTypeSet(RadiusField,CMISSFieldUnitScaling,Err)
-  CALL CMISSFieldGeometricFieldSet(RadiusField,GeometricField,Err)
+  CALL CMISSFieldGeometricFieldSet(RadiusField,GeometricField,Err) !if I delete this line it moans that it must have a geometric field associated
   CALL CMISSFieldCreateFinish(RadiusField,Err)
 
   !set the radius values
@@ -394,53 +403,85 @@ PROGRAM AIRWAYPOISEUILLEEXAMPLE
 !##############################################################################################################################################
 !SET UP EQUATIONS
 
+  !(1)FEM the finite element equations have 2 variables which have one component each
   !Create the equations_set is derived from geometry
-  CALL CMISSEquationsSetTypeInitialise(EquationsSet,Err)
-  CALL CMISSFieldTypeInitialise(EquationsSetField,Err)
-  CALL CMISSEquationsSetCreateStart(EquationsSetUserNumber,Region,GeometricField,CMISSEquationsSetFluidmechanicsClass, &
-    & CMISSEquationsSetPoiseuilleEquationType,CMISSEquationsSetStaticPoiseuilleSubtype,EquationsSetFieldUserNumber, &
-    & EquationsSetField,EquationsSet,Err)
-  CALL CMISSEquationsSetCreateFinish(EquationsSet,Err)
+  CALL CMISSEquationsSetTypeInitialise(EquationsSet1,Err)
+  CALL CMISSFieldTypeInitialise(EquationsSet1Field,Err)
+  CALL CMISSEquationsSetCreateStart(EquationsSet1UserNumber,Region,GeometricField,CMISSEquationsSetFluidmechanicsClass, &
+    & CMISSEquationsSetPoiseuilleEquationType,CMISSEquationsSetStaticPoiseuilleSubtype,EquationsSet1FieldUserNumber, &
+    & EquationsSet1Field,EquationsSet1,Err)
+  CALL CMISSEquationsSetCreateFinish(EquationsSet1,Err)
 
 
-  !Create the equations set dependent field variables
-  !Note that this field is set up in Poiseulle Equation Routines to have two variables and two components which are node (pressure) and element based (flow).
+  !(1)FD the finite difference equations have the same dependent fields therefore initially set as FEM 
+  CALL CMISSEquationsSetTypeInitialise(EquationsSet2,Err)
+  CALL CMISSFieldTypeInitialise(EquationsSet2Field,Err)
+  CALL CMISSEquationsSetCreateStart(EquationsSet2UserNumber,Region,GeometricField,CMISSEquationsSetFluidmechanicsClass, &
+    & CMISSEquationsSetPoiseuilleEquationType,CMISSEquationsSetStaticPoiseuilleSubtype,EquationsSet2FieldUserNumber, &
+    & EquationsSet2Field,EquationsSet2,Err)
+  CALL CMISSEquationsSetCreateFinish(EquationsSet2,Err)
+
+
+
+  !Create the equations set shared dependent field variables, I dont see that there is a mechanism not to map all variables in the equation sets
+  !Note that this field is set up in Poiseulle Equation Routines to have two variables with one component each).
   CALL CMISSFieldTypeInitialise(DependentField,Err) 
-  CALL CMISSEquationsSetDependentCreateStart(EquationsSet,DependentFieldUserNumber,DependentField,Err)
-  CALL CMISSEquationsSetDependentCreateFinish(EquationsSet,Err)
+  CALL CMISSFieldCreateStart(DependentFieldUserNumber,Region,DependentField,Err)
+  CALL CMISSFieldTypeSet(DependentField,CMISSFieldGeneralType,Err)  
+  CALL CMISSFieldMeshDecompositionSet(DependentField,Decomposition,Err)
+  CALL CMISSFieldGeometricFieldSet(DependentField,GeometricField,Err) 
+  CALL CMISSFieldDependentTypeSet(DependentField,CMISSFieldDependentType,Err)
+  CALL CMISSFieldNumberOfVariablesSet(DependentField,4,Err) 
+  CALL CMISSFieldVariableTypesSet(DependentField,[CMISSFieldUVariableType,CMISSFieldDelUDelNVariableType, &
+       & CMISSFieldVVariableType,CMISSFieldDelVDelNVariableType],Err) 
+  CALL CMISSFieldDimensionSet(DependentField,CMISSFieldUVariableType,CMISSFieldScalarDimensionType,Err) 
+  CALL CMISSFieldDimensionSet(DependentField,CMISSFieldDelUDelNVariableType,CMISSFieldScalarDimensionType,Err) 
+  CALL CMISSFieldDimensionSet(DependentField,CMISSFieldVVariableType,CMISSFieldScalarDimensionType,Err) 
+  CALL CMISSFieldDimensionSet(DependentField,CMISSFieldDelVDelNVariableType,CMISSFieldScalarDimensionType,Err)
+  CALL CMISSFieldNumberOfComponentsSet(DependentField,CMISSFieldUVariableType,1,Err)
+  CALL CMISSFieldNumberOfComponentsSet(DependentField,CMISSFieldDelUDelNVariableType,1,Err)
+  CALL CMISSFieldNumberOfComponentsSet(DependentField,CMISSFieldVVariableType,1,Err)
+  CALL CMISSFieldNumberOfComponentsSet(DependentField,CMISSFieldDelVDelNVariableType,1,Err)
+  CALL CmissFieldComponentInterpolationSet(DependentField,CMISSFieldVVariableType,1,CMISSFieldElementBasedInterpolation,Err)
+  CALL CmissFieldComponentInterpolationSet(DependentField,CMISSFieldDelVDelNVariableType,1,CMISSFieldElementBasedInterpolation,Err)
+  CALL CMISSFieldCreateFinish(DependentField,Err)
+
+  CALL CMISSEquationsSetDependentCreateStart(EquationsSet1,DependentFieldUserNumber,DependentField,Err)
+  CALL CMISSEquationsSetDependentCreateFinish(EquationsSet1,Err)
+
+  CALL CMISSEquationsSetDependentCreateStart(EquationsSet2,DependentFieldUserNumber,DependentField,Err)
+  CALL CMISSEquationsSetDependentCreateFinish(EquationsSet2,Err)
 
   !Create the equations set material field variables viscosity, density
   CALL CMISSFieldTypeInitialise(MaterialsFieldViscosity,Err)
-  CALL CMISSEquationsSetMaterialsCreateStart(EquationsSet,MaterialsFieldViscosityUserNumber,MaterialsFieldViscosity,Err)
-  CALL CMISSEquationsSetMaterialsCreateFinish(EquationsSet,Err)
+  CALL CMISSEquationsSetMaterialsCreateStart(EquationsSet1,MaterialsFieldViscosityUserNumber,MaterialsFieldViscosity,Err)
+  CALL CMISSEquationsSetMaterialsCreateFinish(EquationsSet1,Err)
   VISCOSITY=1.86E-5_CMISSDP !viscosity of air
-  !CALL CMISSFieldComponentValuesInitialise(MaterialsFieldViscosity,CMISSFieldUVariableType,CMISSFieldValuesSetType,1,Viscosity,Err)
- ! DENSITY=1.27E-6_CMISSDP !density of air
-  !CALL CMISSFieldComponentValuesInitialise(MaterialsFieldViscosity,CMISSFieldUVariableType,CMISSFieldValuesSetType,2,Viscosity,Err)
-  
+  CALL CMISSFieldComponentValuesInitialise(MaterialsFieldViscosity,CMISSFieldUVariableType,CMISSFieldValuesSetType,1,Viscosity,Err)
+!  DENSITY=1.27E-6_CMISSDP !density of air
+!  CALL CMISSFieldComponentValuesInitialise(MaterialsFieldViscosity,CMISSFieldUVariableType,CMISSFieldValuesSetType,2,Viscosity,Err)
+
   !Create the equations set independent field variables, in this case radius
-  CALL CMISSEquationsSetIndependentCreateStart(EquationsSet,RadiusFieldUserNumber,RadiusField,Err)
-  CALL CMISSEquationsSetIndependentCreateFinish(EquationsSet,Err)
+  CALL CMISSEquationsSetIndependentCreateStart(EquationsSet1,RadiusFieldUserNumber,RadiusField,Err)
+  CALL CMISSEquationsSetIndependentCreateFinish(EquationsSet1,Err)
+
 
 
   !Create the equations set equations
-  CALL CMISSEquationsTypeInitialise(Equations,Err)
-  CALL CMISSEquationsSetEquationsCreateStart(EquationsSet,Equations,Err)
-  CALL CMISSEquationsSparsityTypeSet(Equations,CMISSEquationsSparseMatrices,Err)
-  CALL CMISSEquationsOutputTypeSet(Equations,CMISSEquationsNoOutput,Err)
-  !fails to finalise
-  CALL CMISSEquationsSetEquationsCreateFinish(EquationsSet,Err)
+  CALL CMISSEquationsTypeInitialise(Equations1,Err)
+  CALL CMISSEquationsSetEquationsCreateStart(EquationsSet1,Equations1,Err)
+  CALL CMISSEquationsSparsityTypeSet(Equations1,CMISSEquationsSparseMatrices,Err)
+  CALL CMISSEquationsOutputTypeSet(Equations1,CMISSEquationsNoOutput,Err)
+  CALL CMISSEquationsSetEquationsCreateFinish(EquationsSet1,Err)
+
+
+
 
 stop
 
 
 
-  !Start the creation of a problem.
-  CALL CMISSProblemTypeInitialise(Problem,Err)
-  CALL CMISSProblemCreateStart(ProblemUserNumber,Problem,Err)
-  CALL CMISSProblemSpecificationSet(Problem,CMISSProblemFluidmechanicsClass,CMISSProblemPoiseuilleEquationType, &
-    & CMISSProblemStaticPoiseuilleSubtype,Err)
-  CALL CMISSProblemCreateFinish(Problem,Err)
+
 
   !Start the creation of the problem control loop
   CALL CMISSProblemControlLoopCreateStart(Problem,Err)
@@ -471,7 +512,7 @@ stop
   CALL CMISSSolverSolverEquationsGet(Solver,SolverEquations,Err)
   CALL CMISSSolverEquationsSparsityTypeSet(SolverEquations,CMISSSolverEquationsSparseMatrices,Err)
   !CALL CMISSSolverEquationsSparsityTypeSet(SolverEquations,CMISSSolverEquationsFullMatrices,Err)
-  CALL CMISSSolverEquationsEquationsSetAdd(SolverEquations,EquationsSet,EquationsSetIndex,Err)
+  CALL CMISSSolverEquationsEquationsSetAdd(SolverEquations,EquationsSet1,EquationsSetIndex,Err)
   CALL CMISSProblemSolverEquationsCreateFinish(Problem,Err)
 
   !Set up the boundary conditions
