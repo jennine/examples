@@ -349,7 +349,7 @@ PROGRAM AIRWAYPOISEUILLEEXAMPLE
   CALL CMISSFieldNumberOfComponentsSet(RadiusField,RadiusFieldType,1,Err)
   CALL CMISSFieldComponentMeshComponentSet(RadiusField,RadiusFieldType,1,1,Err)
   CALL CMISSFieldComponentInterpolationSet(RadiusField,RadiusFieldType,1,&
-	& CMISSFieldElementBasedInterpolation,Err)
+      & CMISSFieldElementBasedInterpolation,Err)
   CALL CMISSFieldScalingTypeSet(RadiusField,CMISSFieldUnitScaling,Err)
   CALL CMISSFieldGeometricFieldSet(RadiusField,GeometricField,Err) !if I delete this line it moans that it must have a geometric field associated
   CALL CMISSFieldCreateFinish(RadiusField,Err)
@@ -357,37 +357,37 @@ PROGRAM AIRWAYPOISEUILLEEXAMPLE
   !set the radius values
   !element 1
   CALL CMISSFieldParameterSetUpdateElement(RadiusField,RadiusFieldType,&
-	& CMISSFieldValuesSetType,1,1,6.0_CMISSDP,Err) 
+        & CMISSFieldValuesSetType,1,1,6.0_CMISSDP,Err) 
   !element 2
   CALL CMISSFieldParameterSetUpdateElement(RadiusField,RadiusFieldType,&
-	& CMISSFieldValuesSetType,2,1,4.0_CMISSDP,Err)
+        & CMISSFieldValuesSetType,2,1,4.0_CMISSDP,Err)
   !element 3
   CALL CMISSFieldParameterSetUpdateElement(RadiusField,RadiusFieldType,&
-	& CMISSFieldValuesSetType,3,1,5.0_CMISSDP,Err)
+        & CMISSFieldValuesSetType,3,1,5.0_CMISSDP,Err)
   !element 4
   CALL CMISSFieldParameterSetUpdateElement(RadiusField,RadiusFieldType,&
-	& CMISSFieldValuesSetType,4,1,2.0_CMISSDP,Err)
+        & CMISSFieldValuesSetType,4,1,2.0_CMISSDP,Err)
   !element 5
   CALL CMISSFieldParameterSetUpdateElement(RadiusField,RadiusFieldType,&
-	& CMISSFieldValuesSetType,5,1,1.5_CMISSDP,Err)
+        & CMISSFieldValuesSetType,5,1,1.5_CMISSDP,Err)
   !element 6
   CALL CMISSFieldParameterSetUpdateElement(RadiusField,RadiusFieldType,&
-	& CMISSFieldValuesSetType,6,1,2.0_CMISSDP,Err)
+        & CMISSFieldValuesSetType,6,1,2.0_CMISSDP,Err)
   !element 7
   CALL CMISSFieldParameterSetUpdateElement(RadiusField,RadiusFieldType,&
-	& CMISSFieldValuesSetType,7,1,3.0_CMISSDP,Err)
+        & CMISSFieldValuesSetType,7,1,3.0_CMISSDP,Err)
   !element 8
   CALL CMISSFieldParameterSetUpdateElement(RadiusField,RadiusFieldType,&
-	& CMISSFieldValuesSetType,8,1,1.5_CMISSDP,Err)
+        & CMISSFieldValuesSetType,8,1,1.5_CMISSDP,Err)
   !element 9
   CALL CMISSFieldParameterSetUpdateElement(RadiusField,RadiusFieldType,&
-	& CMISSFieldValuesSetType,9,1,2.0_CMISSDP,Err)
+        & CMISSFieldValuesSetType,9,1,2.0_CMISSDP,Err)
   !element 10
   CALL CMISSFieldParameterSetUpdateElement(RadiusField,RadiusFieldType,&
-	& CMISSFieldValuesSetType,10,1,1.5_CMISSDP,Err)
+        & CMISSFieldValuesSetType,10,1,1.5_CMISSDP,Err)
   !element 11
   CALL CMISSFieldParameterSetUpdateElement(RadiusField,RadiusFieldType,&
-	& CMISSFieldValuesSetType,11,1,1.0_CMISSDP,Err)
+        & CMISSFieldValuesSetType,11,1,1.0_CMISSDP,Err)
 
   CALL CMISSFieldParameterSetUpdateStart(RadiusField,RadiusFieldType,CMISSFieldValuesSetType,Err)
   CALL CMISSFieldParameterSetUpdateFinish(RadiusField,RadiusFieldType,CMISSFieldValuesSetType,Err)

@@ -659,7 +659,6 @@ PROGRAM MONOLITHICSCHEMEADVECTIONDIFFUSIONFIELDMLEXAMPLE
   !
   !EQUATIONS SETS - USING NEW ARGUMENTS TO ALLOW FOR MULTI-COMPARTMENT MODELS
   DO icompartment = 1,Ncompartments
-
     EquationsSetFieldUserNumberDiffusion = 100_CMISSIntg+icompartment
     EquationsSetUserNumberDiffusion = 200_CMISSIntg+icompartment
     CALL CMISSFieldTypeInitialise(EquationsSetFieldDiffusion(icompartment),Err)
